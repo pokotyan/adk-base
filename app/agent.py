@@ -18,6 +18,8 @@ from zoneinfo import ZoneInfo
 
 import google.auth
 from google.adk.agents import Agent
+from google.adk.tools import google_search
+from google.adk.tools.agent_tool import AgentTool
 
 _, project_id = google.auth.default()
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
@@ -58,9 +60,29 @@ def get_current_time(query: str) -> str:
     return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
 
 
+search_agent = Agent(
+    name="search_agent",
+    model="gemini-2.5-flash",
+    instruction="""
+    You are a diligent and exhaustive researcher. Your task is to perform comprehensive web searches and synthesize the results.
+    Use the 'google_search' tool to find relevant information and provide a detailed, well-organized summary of your findings.
+    Always search for the most current and relevant information available.
+    """,
+    tools=[google_search],
+)
+
+# search_agentをツールとしてラップ
+# TODO ツールである理由がないので、sub agentとして動かしたい
+search_tool = AgentTool(search_agent)
+
 root_agent = Agent(
     name="root_agent",
     model="gemini-2.5-flash",
-    instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
-    tools=[get_weather, get_current_time],
+    instruction="""You are a helpful AI assistant designed to provide accurate and useful information. 
+    You can provide weather information and current time for cities using your built-in tools.
+    
+    For research tasks or when you need to search for information online, use the search_agent tool.
+    This tool will perform web searches and provide you with comprehensive information on any topic.
+    """,
+    tools=[get_weather, get_current_time, search_tool],
 )

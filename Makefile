@@ -35,3 +35,13 @@ lint:
 	uv run ruff check . --diff
 	uv run ruff format . --check --diff
 	uv run mypy .
+
+# Launch Slack bot
+slack-bot:
+	@echo "==============================================================================="
+	@echo "| 🤖 Starting Slack bot...                                                    |"
+	@echo "|                                                                             |"
+	@echo "| 💡 Make sure you have set SLACK_BOT_TOKEN and SLACK_APP_TOKEN              |"
+	@echo "|    environment variables before running this command.                      |"
+	@echo "==============================================================================="
+	uv run python -m app.slack_bot

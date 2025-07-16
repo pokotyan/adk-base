@@ -48,6 +48,7 @@ make install && make playground
 | `make test`          | Run unit and integration tests                                                              |
 | `make lint`          | Run code quality checks (codespell, ruff, mypy)                                             |
 | `make setup-dev-env` | Set up development environment resources using Terraform                         |
+| `make slack-bot`     | Launch Slack bot for real-time agent interaction                                           |
 | `uv run jupyter lab` | Launch Jupyter notebook                                                                     |
 
 For full command options and usage, refer to the [Makefile](Makefile).
@@ -93,3 +94,50 @@ The repository includes a Terraform configuration for the setup of a production 
 ) template for visualizing events being logged in BigQuery. See the "Setup Instructions" tab to getting started.
 
 The application uses OpenTelemetry for comprehensive observability with all events being sent to Google Cloud Trace and Logging for monitoring and to BigQuery for long term storage.
+
+## Slack Bot Integration
+
+This project includes Slack bot integration that allows you to interact with the ADK agent through Slack.
+
+### Setup
+
+1. **Create a Slack App**: Visit [Slack API](https://api.slack.com/apps) and create a new app for your workspace.
+
+2. **Configure Bot Token Scopes**: In your Slack app settings, add the following OAuth scopes:
+   - `app_mentions:read`
+   - `chat:write`
+   - `channels:read`
+   - `groups:read`
+   - `im:read`
+   - `mpim:read`
+   - `commands`
+
+3. **Enable Socket Mode**: Enable Socket Mode in your Slack app and generate an App-Level Token with `connections:write` scope.
+
+4. **Enable Event Subscriptions**: In Event Subscriptions, enable events and add the following bot events:
+   - `app_mention`
+   - `message.channels`
+   - `message.groups` 
+   - `message.im`
+   - `message.mpim`
+
+4. **Set Environment Variables**: Copy `.env.example` to `.env` and fill in your tokens:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual tokens
+   ```
+
+5. **Install Dependencies and Run**:
+   ```bash
+   make install
+   make slack-bot
+   ```
+
+### Available Slack Commands
+
+- **Direct Messages**: Mention the bot or send direct messages for general conversations
+- **`/weather [location]`**: Get weather information for a specific location
+- **`/time [location]`**: Get current time for a specific location
+- **App Mentions**: Use `@your-bot-name` to interact with the agent in channels
+
+The bot maintains separate conversation sessions for each user and integrates seamlessly with the ADK agent's capabilities.
