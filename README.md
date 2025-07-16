@@ -141,3 +141,62 @@ This project includes Slack bot integration that allows you to interact with the
 - **App Mentions**: Use `@your-bot-name` to interact with the agent in channels
 
 The bot maintains separate conversation sessions for each user and integrates seamlessly with the ADK agent's capabilities.
+
+## Langfuse Integration
+
+This project supports prompt management through Langfuse, allowing you to manage and version your prompts externally.
+
+### Setup
+
+1. **Start Langfuse with Docker Compose**:
+   ```bash
+   docker-compose up -d
+   ```
+   
+   This will start:
+   - Langfuse UI at http://localhost:3000
+   - PostgreSQL database for Langfuse
+
+2. **Access Langfuse UI**:
+   - Navigate to http://localhost:3000
+   - Create an account on first access
+   - Create a new project and obtain your API keys
+
+3. **Configure Environment Variables**:
+   ```bash
+   # Add these to your .env file
+   LANGFUSE_PUBLIC_KEY=your_public_key
+   LANGFUSE_SECRET_KEY=your_secret_key
+   LANGFUSE_HOST=http://localhost:3000
+   ```
+
+4. **Create Prompts in Langfuse**:
+   - Go to the Prompts section in Langfuse UI
+   - Create prompts with names matching those in `app/agent.py`:
+     - `search_agent_instruction`
+     - `root_agent_instruction`
+   - Set labels (e.g., "production", "development") for version management
+
+### Usage
+
+The application automatically loads prompts from Langfuse when available. If Langfuse is not configured or prompts are not found, it falls back to default prompts defined in the code.
+
+To manage Langfuse services:
+```bash
+# Start Langfuse
+docker-compose up -d
+
+# Stop Langfuse
+docker-compose down
+
+# View logs
+docker-compose logs -f langfuse
+```
+
+### Benefits
+
+- **Version Control**: Track prompt changes over time
+- **A/B Testing**: Test different prompt versions
+- **Collaboration**: Share and manage prompts across teams
+- **Hot Reloading**: Update prompts without redeploying code
+- **Analytics**: Monitor prompt performance and usage

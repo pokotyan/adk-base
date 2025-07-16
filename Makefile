@@ -45,3 +45,23 @@ slack-bot:
 	@echo "|    environment variables before running this command.                      |"
 	@echo "==============================================================================="
 	uv run python -m app.slack_bot
+
+# Langfuse commands
+langfuse-up:
+	@echo "==============================================================================="
+	@echo "| 🚀 Starting Langfuse services...                                            |"
+	@echo "|                                                                             |"
+	@echo "| 📊 Langfuse UI will be available at: http://localhost:3000                 |"
+	@echo "==============================================================================="
+	docker-compose up -d
+
+langfuse-down:
+	@echo "Stopping Langfuse services..."
+	docker-compose down
+
+langfuse-logs:
+	docker-compose logs -f langfuse
+
+langfuse-restart:
+	@echo "Restarting Langfuse services..."
+	docker-compose restart
