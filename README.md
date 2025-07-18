@@ -200,3 +200,10 @@ docker-compose logs -f langfuse
 - **Collaboration**: Share and manage prompts across teams
 - **Hot Reloading**: Update prompts without redeploying code
 - **Analytics**: Monitor prompt performance and usage
+
+
+## TODO
+
+- v3のlangfuseを使うようにしたい
+- langfuseのotel実装
+- _run_agentが関数の中に関数定義してるが、やめたい。generationの管理、本当にこんなコード必要なのか深堀したい

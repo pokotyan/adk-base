@@ -10,6 +10,7 @@ from google.genai import types as genai_types
 
 from . import config
 from .agent import create_agents
+from .utils.langfuse import LangfuseClient, langfuse_context, observe
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,6 +21,11 @@ session_service = InMemorySessionService()
 user_sessions: Dict[str, str] = {}
 bot_threads: set = set()
 
+langfuse_client = LangfuseClient(
+    public_key=config.LANGFUSE_PUBLIC_KEY,
+    secret_key=config.LANGFUSE_SECRET_KEY,
+    host=config.LANGFUSE_HOST
+)
 
 async def get_or_create_session(user_id: str) -> str:
     if user_id not in user_sessions:
@@ -33,13 +39,27 @@ async def get_or_create_session(user_id: str) -> str:
     return user_sessions[user_id]
 
 
-async def process_message(user_id: str, message: str) -> str:
-    try:
-        logger.info(f"[DEBUG] メッセージ処理開始: {message}")
-        # リクエストごとに最新のプロンプトでエージェントを作成。
-        # agentsのinstructionは更新することができないため、プロンプトを更新しても反映することができないため
-        agent = create_agents()
-        logger.info(f"[DEBUG] エージェント作成完了, instruction: {agent.instruction[:100]}...")
+@observe(name="slack_bot_conversation")
+async def process_with_agent(user_id: str, session_id: str, message: str) -> str:
+    langfuse_context.update_current_trace(
+        user_id=user_id,
+        session_id=session_id
+    )
+    
+    # リクエストごとに最新のプロンプトでエージェントを作成。
+    # agentsのinstructionは更新することができないため、プロンプトを更新しても反映することができないため
+    agent = create_agents(langfuse_client)
+    root_prompt = getattr(agent, '_langfuse_prompts', {}).get('root')
+    
+    # Generationとして記録するための内部関数
+    @observe(as_type="generation", name="root_agent_generation")
+    async def _run_agent():
+        if root_prompt:
+            langfuse_context.update_current_observation(
+                prompt=root_prompt,
+                input=message,
+                model="gemini-2.5-flash"
+            )
         
         runner = Runner(
             agent=agent,
@@ -47,7 +67,6 @@ async def process_message(user_id: str, message: str) -> str:
             session_service=session_service
         )
         
-        session_id = await get_or_create_session(user_id)
         response_text = ""
         
         async for event in runner.run_async(
@@ -63,7 +82,22 @@ async def process_message(user_id: str, message: str) -> str:
                     if part.text:
                         response_text += part.text
         
+        if response_text:
+            langfuse_context.update_current_observation(
+                output=response_text
+            )
+        
         return response_text or "申し訳ございませんが、応答を生成できませんでした。"
+    
+    return await _run_agent()
+
+
+async def process_message(user_id: str, message: str) -> str:
+    try:
+        logger.info(f"[DEBUG] メッセージ処理開始: {message}")
+        session_id = await get_or_create_session(user_id)
+        
+        return await process_with_agent(user_id, session_id, message)
     
     except Exception as e:
         logger.error(f"エージェント処理エラー: {e}")

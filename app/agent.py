@@ -2,17 +2,11 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
 
-from . import config
 from .tools import get_weather, get_current_time
-from .utils.langfuse import LangfuseClient
 
-def create_agents():
-    langfuse_client = LangfuseClient(
-        public_key=config.LANGFUSE_PUBLIC_KEY,
-        secret_key=config.LANGFUSE_SECRET_KEY,
-        host=config.LANGFUSE_HOST
-    )
-    search_instruction = langfuse_client.get_prompt(
+def create_agents(langfuse_client):
+    
+    search_instruction, search_prompt_obj = langfuse_client.get_prompt(
         name="search_agent_instruction",
         fallback="""
         You are a diligent and exhaustive researcher. Your task is to perform comprehensive web searches and synthesize the results.
@@ -27,7 +21,7 @@ def create_agents():
         tools=[google_search],
     )
     
-    root_instruction = langfuse_client.get_prompt(
+    root_instruction, root_prompt_obj = langfuse_client.get_prompt(
         name="root_agent_instruction",
         fallback="""You are a helpful AI assistant designed to provide accurate and useful information. 
         You can provide weather information and current time for cities using your built-in tools.
@@ -43,5 +37,11 @@ def create_agents():
         # TODO search_agentはツールではなく、sub agentとして動かしたい
         tools=[get_weather, get_current_time, AgentTool(search_agent)],
     )
+    
+    # エージェントにプロンプトオブジェクトを添付（後でトレーシングで使用）
+    root_agent._langfuse_prompts = {
+        "root": root_prompt_obj,
+        "search": search_prompt_obj
+    }
     
     return root_agent
